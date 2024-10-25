@@ -1,0 +1,45 @@
+{
+    "_default": {
+        "1": {
+            "calibration_time": 36.0,
+            "command_codes": {
+                "CLOSE": 12345,
+                "STOP": 67890,
+                "OPEN": 32141
+            },
+            "position": 0.0,
+            "shutter_id": 1,
+            "shutter_name": "Stairs shutter",
+            "state": "closed"
+        },
+        "2": {
+            "calibration_time": 32.0,
+            "command_codes": {
+                "CLOSE": 234512,
+                "STOP": 23421,
+                "OPEN": 654642
+            },
+            "position": 0.0,
+            "shutter_id": 2,
+            "shutter_name": "Kitchen shutter",
+            "state": "closed"
+        },
+        "3": {
+            "calibration_time": 36.0,
+            "command_codes": {
+                "CLOSE": 6785678,
+                "STOP": 34563456,
+                "OPEN": 32452345
+            },
+            "group_members": [
+                1,
+                2
+            ],
+            "group_shutter": true,
+            "position": 0.0,
+            "shutter_id": 3,
+            "shutter_name": "Two shutters",
+            "state": "closed"
+        }
+    }
+}
