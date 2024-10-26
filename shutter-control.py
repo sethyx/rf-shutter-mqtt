@@ -239,7 +239,7 @@ class ShutterControl:
         self.db.update(shutter_data, where('shutter_id') == self.shutter_id)
         if persist:
             self.db.storage.persist()
-        self.mqtt_client.publish(f'{self.topic}/shutter/{self.shutter_id}/state', json.dumps(shutter_data))
+        self.mqtt_client.publish(f'{self.topic}/shutter/{self.shutter_id}/state', json.dumps(shutter_data), retain=True)
         logger.debug(f"{self.shutter_name}: Updated state to Home Assistant: {shutter_data}")
 
 # Command Wrapper
@@ -259,12 +259,15 @@ def setup_mqtt_discovery(client, topic, shutter_id, shutter_name):
         "state_topic": f"{topic}/shutter/{shutter_id}/state",
         "position_topic": f"{topic}/shutter/{shutter_id}/state",
         "set_position_topic": f"{topic}/shutter/{shutter_id}/set_position",
+        "availability_topic": f"{topic}/system/availability",
         "value_template": "{{ value_json.state }}",
         "state_closed": "closed",
         "state_open": "open",
         "position_template": "{{ value_json.position }}",
         "position_open": 100,
         "position_closed": 0,
+        "payload_available": "online",
+        "payload_not_available": "offline"
     }
     client.publish(f'homeassistant/cover/{topic}/{shutter_id}/config', json.dumps(discovery_payload), retain=True)
     logger.info(f"Published MQTT discovery config for {shutter_id} / {shutter_name}")
@@ -321,6 +324,7 @@ def main():
     # Setup MQTT and TinyDB
     mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+    mqtt_client.will_set(topic=f"{MQTT_TOPIC}/system/availability", payload="offline", retain=True)
     mqtt_client.on_message = on_message
     mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
     logger.info("Connected to MQTT broker")
@@ -351,6 +355,7 @@ def main():
 
         # Set up Home Assistant MQTT discovery
         setup_mqtt_discovery(mqtt_client, MQTT_TOPIC, shutter['shutter_id'], shutter['shutter_name'])
+        mqtt_client.publish(f"{MQTT_TOPIC}/system/availability", "online", retain=True)
         shutter_control.update_state()
 
         # Store the shutter control object in the userdata for MQTT callbacks

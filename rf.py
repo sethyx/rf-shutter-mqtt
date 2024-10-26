@@ -14,7 +14,7 @@ RFProtocol = namedtuple('RFProtocol',
                        'one_high', 'one_low', 'repeat_count'])
 
 PROTOCOLS = (None,
-             RFProtocol(20, 40, 10000, 1, 0, 5000, 1472, 17, 37, 35, 19, 5), # "home smart" shutter
+             RFProtocol(20, 40, 10000, 1, 0, 5000, 1472, 17, 37, 35, 19, 6), # "home smart" shutter
              RFProtocol(300, 24, 0, 1, 0, 300, 9000, 1, 3, 3, 1, 4) # LED controller
              )
 
@@ -146,7 +146,7 @@ class RFDevice:
         try:
             _LOGGER.info(command)
             self.tx_code(command)
-            time.sleep(2 * (self.get_total_tx_length() / 1000000.0))
+            time.sleep((self.get_total_tx_length() / 1000000.0))
             return True
         except Exception as e:
             _LOGGER.error(f"exception while sending command: {e}")
