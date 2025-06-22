@@ -1,17 +1,19 @@
 #!/usr/bin/python
 
-import os
-import sys
-import time
 import json
-import threading
-import queue
 import logging
-import paho.mqtt.client as mqtt
-from tinydb import TinyDB, Storage, where, Query
-from tinydb.storages import MemoryStorage
-from rf import RFDevice
+import os
+import queue
+import sys
+import threading
+import time
 import traceback
+
+import paho.mqtt.client as mqtt
+from tinydb import Query, Storage, TinyDB, where
+from tinydb.storages import MemoryStorage
+
+from rf import RFDevice
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -307,6 +309,20 @@ def on_message(client, userdata, msg):
             
     threading.Thread(target=handle_message).start()
 
+def on_connect(client, userdata, flags, rc, properties=None):
+    """Callback for when the client connects to the MQTT broker."""
+    MQTT_TOPIC = os.environ.get("MQTT_TOPIC")
+    if rc == 0:
+        logger.info("Successfully connected to MQTT broker")
+        # Subscribe to all shutter command topics using a wildcard
+        client.subscribe(f'{MQTT_TOPIC}/shutter/#')
+        
+        # Announce that the service is online. Retain=True ensures the message is saved by the broker.
+        client.publish(f"{MQTT_TOPIC}/system/availability", "online", retain=True)
+        logger.info(f"Published 'online' to availability topic and subscribed to command topics.")
+    else:
+        logger.error(f"Failed to connect, return code {rc}")
+
 # Main application logic
 def main():
     logger.info("Starting shutter control application")
@@ -325,7 +341,11 @@ def main():
     mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
     mqtt_client.will_set(topic=f"{MQTT_TOPIC}/system/availability", payload="offline", retain=True)
+
+    # Assign the on_connect callback
+    mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
+
     mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
     logger.info("Connected to MQTT broker")
 
@@ -355,7 +375,6 @@ def main():
 
         # Set up Home Assistant MQTT discovery
         setup_mqtt_discovery(mqtt_client, MQTT_TOPIC, shutter['shutter_id'], shutter['shutter_name'])
-        mqtt_client.publish(f"{MQTT_TOPIC}/system/availability", "online", retain=True)
         shutter_control.update_state()
 
         # Store the shutter control object in the userdata for MQTT callbacks
